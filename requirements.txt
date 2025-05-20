@@ -5,3 +5,4 @@ scikit-learn>=1.6.1
 numpy>=1.21.0
 tqdm>=4.60.0
 flask>=3.1.1
+gunicorn>=23.0.0

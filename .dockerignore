@@ -1,0 +1,68 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtualenv
+.env
+.venv/
+env/
+venv/
+ENV/
+VENV/
+
+# IDE / Editor specific
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker specific files (should not be in the image itself if not needed at runtime)
+# Dockerfile # Usually not needed inside the image, but sometimes people copy it for reference.
+# .dockerignore # Definitely not needed inside the image.
+
+# Git
+.git/
+.gitignore
+
+# Test outputs
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+
+# Logs
+*.log
+
+# Documentation / Readme (if not needed at runtime)
+# README.md
+
+# Any other files/directories not needed for running the application in the container.
+# For example, local development scripts, large datasets not used by the deployed app, etc.
+
+# IMPORTANT:
+# DO NOT add saved_model_and_tokenizer/ here if you intend to COPY the model
+# into the Docker image. If this directory is listed here, it will be excluded
+# from the Docker build context, and the COPY . . command in your Dockerfile
+# will not include it.
