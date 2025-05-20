@@ -1,3 +1,5 @@
+from torch.utils.data import DataLoader
+
 class CustomDataLoader:
     def __init__(self, batch_size):
         self.batch_size = batch_size

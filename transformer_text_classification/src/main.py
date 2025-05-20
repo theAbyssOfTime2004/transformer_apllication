@@ -1,4 +1,4 @@
-from datasets import load_dataset # This is an external package, so it's fine
+from datasets import load_dataset 
 from .config import Config # Changed from src.config
 from .dataset_manager import DatasetManager # Changed from src.dataset_manager
 from .data_preprocessor import DataPreprocessor # Changed from src.data_preprocessor
@@ -10,6 +10,7 @@ from .inference_model import InferenceModel # Changed from src.inference_model
 import torch # External
 import random # External
 import numpy as np # External
+import os
 
 def set_seed(seed_value):
     random.seed(seed_value)
@@ -77,39 +78,55 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
 
-    # Train model
-    trainer = TrainingWorkflow(
-        model=model,
-        train_dataloader=train_dataloader,
-        val_dataloader=val_dataloader,
-        tokenizer=tokenizer_wrapper.tokenizer, # <<<< THÊM DÒNG NÀY
-        learning_rate=CONFIG["learning_rate"],
-        num_epochs=CONFIG["num_epochs"],
-        device=device,
-        patience=3, # Bạn có thể lấy từ config nếu muốn
-        min_delta=0.001 # Bạn có thể lấy từ config nếu muốn
-    )
-    trainer.train()
+    # # Train model
+    # trainer = TrainingWorkflow(
+    #     model=model,
+    #     train_dataloader=train_dataloader,
+    #     val_dataloader=val_dataloader,
+    #     tokenizer=tokenizer_wrapper.tokenizer, # <<<< THÊM DÒNG NÀY
+    #     learning_rate=CONFIG["learning_rate"],
+    #     num_epochs=CONFIG["num_epochs"],
+    #     device=device,
+    #     patience=3, # Bạn có thể lấy từ config nếu muốn
+    #     min_delta=0.001 # Bạn có thể lấy từ config nếu muốn
+    # )
+    # trainer.train()
 
-    # Evaluate model on the test set
-    if test_dataloader:
-        print("\nEvaluating on Test Set...")
-        test_loss, test_accuracy, test_report = trainer.evaluate(test_dataloader, description="Testing")
-        print(f"Test Loss: {test_loss:.4f}")
-        print(f"Test Accuracy: {test_accuracy:.4f}")
-        print("Test Set Classification Report:")
-        print(test_report)
-    else:
-        print("Test dataloader not available, skipping test set evaluation.")
+    # # Evaluate model on the test set
+    # if test_dataloader:
+    #     print("\nEvaluating on Test Set...")
+    #     test_loss, test_accuracy, test_report = trainer.evaluate(test_dataloader, description="Testing")
+    #     print(f"Test Loss: {test_loss:.4f}")
+    #     print(f"Test Accuracy: {test_accuracy:.4f}")
+    #     print("Test Set Classification Report:")
+    #     print(test_report)
+    # else:
+    #     print("Test dataloader not available, skipping test set evaluation.")
 
 
     # Inference
+    print("\nPerforming inference with a SAVED model...")
+    #tải model và tokenizer từ thư mục đã lưu
+    saved_model_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "..", "saved_model_and_tokenizer") # Đường dẫn đến thư mục lưu model
     # Tạo một instance InferenceModel mới, tải model từ thư mục đã lưu nếu cần
     # Hoặc sử dụng model đã có trong `trainer.model` nếu nó là model tốt nhất
+
+    # Kiểm tra xem thư mục model đã lưu có tồn tại không
+    if not os.path.exists(saved_model_path) or not os.listdir(saved_model_path):
+        print(f"Error: Saved model directory '{saved_model_path}' not found or is empty.")
+        print("Please run the training process first to save a model.")
+        return # Thoát nếu không có model đã lưu
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    from transformers import AutoModelForSequenceClassification, AutoTokenizer
+    loaded_model = AutoModelForSequenceClassification.from_pretrained(saved_model_path)
+    loaded_tokenizer = AutoTokenizer.from_pretrained(saved_model_path)
+    loaded_model.to(device)
+    
     print("\nPerforming inference with the trained model...")
     predictor = InferenceModel(
-        model=trainer.model, # Sử dụng model đã được train (có thể là model tốt nhất)
-        tokenizer=tokenizer_wrapper.tokenizer, # Sử dụng tokenizer đã dùng để train
+        model=loaded_model, # Sử dụng model đã được train (có thể là model tốt nhất)
+        tokenizer=loaded_tokenizer, # Sử dụng tokenizer đã dùng để train
         device=device,
         max_length=CONFIG["max_length"]
     )
