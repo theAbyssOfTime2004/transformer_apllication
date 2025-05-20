@@ -1,3 +1,6 @@
+from transformers import AutoModelForSequenceClassification
+import os
+
 class ModelBuilder:
     def __init__(self, model_name, num_labels):
         self.model_name = model_name

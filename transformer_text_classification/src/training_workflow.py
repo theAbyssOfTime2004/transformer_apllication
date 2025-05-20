@@ -1,7 +1,8 @@
 import torch
-from transformers import AdamW, get_linear_schedule_with_warmup
+from transformers import  get_linear_schedule_with_warmup
 from tqdm import tqdm
 from sklearn.metrics import accuracy_score, classification_report
+from torch.optim import AdamW
 import os # Thêm import os
 
 class TrainingWorkflow:

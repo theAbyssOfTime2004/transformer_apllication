@@ -1,15 +1,15 @@
-from datasets import load_dataset
-from src.config import CONFIG
-from src.dataset_manager import DatasetManager
-from src.data_preprocessor import DataPreprocessor
-from src.tokenizer_wrapper import TokenizerWrapper
-from src.dataloader import CustomDataLoader
-from src.model_builder import ModelBuilder
-from src.training_workflow import TrainingWorkflow
-from src.inference_model import InferenceModel
-import torch
-import random
-import numpy as np
+from datasets import load_dataset # This is an external package, so it's fine
+from .config import Config # Changed from src.config
+from .dataset_manager import DatasetManager # Changed from src.dataset_manager
+from .data_preprocessor import DataPreprocessor # Changed from src.data_preprocessor
+from .tokenizer_wrapper import TokenizerWrapper # Changed from src.tokenizer_wrapper
+from .dataloader import CustomDataLoader # Changed from src.dataloader
+from .model_builder import ModelBuilder # Changed from src.model_builder
+from .training_workflow import TrainingWorkflow # Changed from src.training_workflow
+from .inference_model import InferenceModel # Changed from src.inference_model
+import torch # External
+import random # External
+import numpy as np # External
 
 def set_seed(seed_value):
     random.seed(seed_value)

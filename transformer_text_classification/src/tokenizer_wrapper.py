@@ -1,3 +1,5 @@
+from transformers import AutoTokenizer
+
 class TokenizerWrapper:
     def __init__(self, model_name, max_length):
         print(f"Loading tokenizer for {model_name}...")
