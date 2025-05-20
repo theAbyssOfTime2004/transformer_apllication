@@ -37,7 +37,6 @@ def load_model_resources():
     if not os.path.exists(SAVED_MODEL_PATH) or not os.listdir(SAVED_MODEL_PATH):
         print(f"Error: Saved model directory '{SAVED_MODEL_PATH}' not found or is empty.")
         print("Please ensure the model is trained and saved correctly.")
-        # In a real application, you might want to raise an exception or handle this differently
         return
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -49,17 +48,21 @@ def load_model_resources():
         loaded_tokenizer = AutoTokenizer.from_pretrained(SAVED_MODEL_PATH)
         loaded_model.to(device)
 
-        # Initialize InferenceModel with the loaded model and tokenizer
         predictor = InferenceModel(
             model=loaded_model,
             tokenizer=loaded_tokenizer,
             device=device,
-            max_length=MAX_LENGTH # Use the defined max_length
+            max_length=MAX_LENGTH
         )
         print("Model, tokenizer, and predictor loaded successfully.")
     except Exception as e:
         print(f"Error loading model resources: {e}")
-        predictor = None # Ensure predictor is None if there's an error
+        predictor = None
+
+# Call load_model_resources() when the module is imported by Gunicorn
+# This should be after app = Flask(__name__) and before any routes if predictor is used by them directly,
+# or simply at the module level like this.
+load_model_resources() # <--- THAY ĐỔI QUAN TRỌNG: Gọi hàm này ở đây
 
 @app.route('/')
 def home():
@@ -70,7 +73,8 @@ def home():
 def predict_sentiment():
     """Handles sentiment prediction requests."""
     if predictor is None:
-        return jsonify({"error": "Model not loaded. Please check server logs."}), 500
+        # This message will now be more relevant if loading failed
+        return jsonify({"error": "Model not loaded or failed to load. Please check server logs."}), 500
 
     try:
         data = request.get_json()
@@ -81,12 +85,9 @@ def predict_sentiment():
         if not text_to_predict.strip():
             return jsonify({"error": "'text' field cannot be empty."}), 400
 
-        # Use the predictor to get the result
-        # InferenceModel.predict returns a list, so we take the first element
         prediction_result = predictor.predict([text_to_predict])
         
         if prediction_result:
-            # Returns a dict like {"label": "Positive", "score": 0.99}
             return jsonify(prediction_result[0]) 
         else:
             return jsonify({"error": "Prediction failed."}), 500
@@ -96,8 +97,5 @@ def predict_sentiment():
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
 if __name__ == '__main__':
-    # Load model resources once when the app starts
-    load_model_resources()
-    # Run the app. host='0.0.0.0' makes it accessible from other machines on the same network.
-    # debug=True should only be used in a development environment.
+    # Không cần gọi load_model_resources() ở đây nữa vì nó đã được gọi ở trên
     app.run(host='0.0.0.0', port=5000, debug=True)
