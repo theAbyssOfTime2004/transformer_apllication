@@ -8,15 +8,34 @@ from src.model_builder import ModelBuilder
 from src.training_workflow import TrainingWorkflow
 from src.inference_model import InferenceModel
 import torch
+import random
+import numpy as np
+
+def set_seed(seed_value):
+    random.seed(seed_value)
+    np.random.seed(seed_value)
+    torch.manual_seed(seed_value)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed_value)
 
 def main():
+    # Load configuration
+    config_instance = Config() # Tạo instance của Config class
+    
+    # Chuyển đổi instance thành dictionary nếu các phần còn lại của code mong đợi CONFIG là dict
+    # Hoặc tốt hơn là sử dụng config_instance.attribute trực tiếp
+    CONFIG = {attr: getattr(config_instance, attr) for attr in dir(config_instance) if not callable(getattr(config_instance, attr)) and not attr.startswith("__")}
+
+    config_instance.display()
+    set_seed(CONFIG["random_seed"])
+
     # Load and discover dataset
     dataset_manager = DatasetManager(CONFIG["dataset_name"])
     dataset_manager.load()
     dataset_manager.discover()
     train_dataset, val_dataset, test_dataset = dataset_manager.get_splits()
 
-    # Preprocess data
+    # Preprocess data (hiện tại là placeholder)
     preprocessor = DataPreprocessor()
     train_dataset = preprocessor.apply_to_dataset(train_dataset)
     val_dataset = preprocessor.apply_to_dataset(val_dataset)
@@ -25,9 +44,26 @@ def main():
     # Tokenize data
     model_name_to_use = CONFIG["bert_model_name"] if CONFIG["model_choice"] == "bert" else CONFIG["xlnet_model_name"]
     tokenizer_wrapper = TokenizerWrapper(model_name=model_name_to_use, max_length=CONFIG["max_length"])
-    tokenized_train_dataset = tokenizer_wrapper.tokenize_dataset(train_dataset)
-    tokenized_val_dataset = tokenizer_wrapper.tokenize_dataset(val_dataset)
-    tokenized_test_dataset = tokenizer_wrapper.tokenize_dataset(test_dataset)
+    
+    # Kiểm tra dataset trước khi tokenize
+    if train_dataset:
+        tokenized_train_dataset = tokenizer_wrapper.tokenize_dataset(train_dataset)
+    else:
+        tokenized_train_dataset = None
+        print("Training dataset is None, skipping tokenization.")
+    
+    if val_dataset:
+        tokenized_val_dataset = tokenizer_wrapper.tokenize_dataset(val_dataset)
+    else:
+        tokenized_val_dataset = None
+        print("Validation dataset is None, skipping tokenization.")
+
+    if test_dataset:
+        tokenized_test_dataset = tokenizer_wrapper.tokenize_dataset(test_dataset)
+    else:
+        tokenized_test_dataset = None
+        print("Test dataset is None, skipping tokenization.")
+
 
     # Create DataLoaders
     data_loader_creator = CustomDataLoader(batch_size=CONFIG["batch_size"])
@@ -46,23 +82,34 @@ def main():
         model=model,
         train_dataloader=train_dataloader,
         val_dataloader=val_dataloader,
+        tokenizer=tokenizer_wrapper.tokenizer, # <<<< THÊM DÒNG NÀY
         learning_rate=CONFIG["learning_rate"],
         num_epochs=CONFIG["num_epochs"],
-        device=device
+        device=device,
+        patience=3, # Bạn có thể lấy từ config nếu muốn
+        min_delta=0.001 # Bạn có thể lấy từ config nếu muốn
     )
     trainer.train()
 
-    # Evaluate model
-    test_loss, test_accuracy, test_report = trainer.evaluate(test_dataloader, description="Testing")
-    print(f"Test Loss: {test_loss:.4f}")
-    print(f"Test Accuracy: {test_accuracy:.4f}")
-    print("Test Set Classification Report:")
-    print(test_report)
+    # Evaluate model on the test set
+    if test_dataloader:
+        print("\nEvaluating on Test Set...")
+        test_loss, test_accuracy, test_report = trainer.evaluate(test_dataloader, description="Testing")
+        print(f"Test Loss: {test_loss:.4f}")
+        print(f"Test Accuracy: {test_accuracy:.4f}")
+        print("Test Set Classification Report:")
+        print(test_report)
+    else:
+        print("Test dataloader not available, skipping test set evaluation.")
+
 
     # Inference
+    # Tạo một instance InferenceModel mới, tải model từ thư mục đã lưu nếu cần
+    # Hoặc sử dụng model đã có trong `trainer.model` nếu nó là model tốt nhất
+    print("\nPerforming inference with the trained model...")
     predictor = InferenceModel(
-        model=model,
-        tokenizer=tokenizer_wrapper.tokenizer,
+        model=trainer.model, # Sử dụng model đã được train (có thể là model tốt nhất)
+        tokenizer=tokenizer_wrapper.tokenizer, # Sử dụng tokenizer đã dùng để train
         device=device,
         max_length=CONFIG["max_length"]
     )
@@ -72,9 +119,9 @@ def main():
         "A decent attempt, but it fell short in many areas."
     ]
     predictions = predictor.predict(sample_texts)
-    for text, sentiment in zip(sample_texts, predictions):
+    for text, sentiment_dict in zip(sample_texts, predictions): # Giả sử predict trả về list of dicts
         print(f"\nText: {text}")
-        print(f"Predicted Sentiment: {sentiment}")
+        print(f"Predicted Sentiment: {sentiment_dict['label']} (Score: {sentiment_dict['score']:.4f})") # Điều chỉnh dựa trên output của InferenceModel
 
 if __name__ == "__main__":
     main()
