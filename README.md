@@ -107,6 +107,3 @@ transformer_text_classification/
 - You can extend this pipeline for other text classification tasks by changing the dataset and `num_labels`.
 
 ---
-
-**Author:**  
-- [Your Name]
